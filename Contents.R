@@ -18,7 +18,8 @@
 # install.packages("textdata") # dictionaries
 # install.packages("syuzhet") # sentiment
 # install.packages("doc2concrete") # ngram model
-# install.packages("politeness") # grammar parsing & dialogue acts
+# install.packages("politeness") # dialogue acts
+# install.packages("politeness") # grammar parsing
 
 # Run these every time
 library(tidyverse)
@@ -31,6 +32,7 @@ library(textdata)
 library(syuzhet)
 library(doc2concrete)
 library(politeness)
+library(spacyr)
 
 # Here I am loading separate R scripts that contain functions we will use
 # make sure these are all in your Rstudio project
@@ -60,5 +62,8 @@ jobdesc<-readRDS("jobdescriptions.RDS")
 # more advanced models that leverage word similarity
 # coverse topic models, word embeddings, similarity scores
 source("similarity_models.R") 
+
+# An extra bit to show off grammar parsing
+source("sentence_structure.R") 
 
 
