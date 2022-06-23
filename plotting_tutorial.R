@@ -250,6 +250,30 @@ topix %>%
 
 #ggsave("sentiment_facet.png")
 
+# you can also do groups
+
+topix %>%
+  ggplot(aes(x=stay,y=wdct,
+             color=gender,
+             group=gender)) +
+  geom_smooth()
+
+
+topix %>%
+  mutate(gender=ifelse(gender==1,"Male","Female")) %>%
+  ggplot(aes(x=stay,y=wdct,
+             color=gender,
+             group=gender)) +
+  geom_smooth() +
+  theme_bw() +
+  geom_vline(xintercept=0) +
+  labs(x="Stay/Switch Rating",
+       y="Word Count") +
+  theme(legend.position=c(.2,.8),
+        panel.grid = element_blank(),
+        axis.title = element_text(size=20),
+        axis.text = element_text(size=15))
+
 ########################################
 # Legends, colors, etc.
 ########################################
