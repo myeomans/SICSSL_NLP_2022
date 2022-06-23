@@ -216,9 +216,12 @@ vecSimCalc(x=c("I am very sad","I am very happy"),
 
 #############################################
 # project data to embedding space
-vdat_train<-vecCheck(jd_small_train$FullDescription,vecSmall,wfFile)
+vdat_train<-vecCheck(jd_small_train$FullDescription,
+                     vecSmall,
+                     wfFile)
 
-vdat_test<-vecCheck(jd_small_test$FullDescription,vecSmall,wfFile)
+vdat_test<-vecCheck(jd_small_test$FullDescription,
+                    vecSmall,wfFile)
 
 #############################################
 # Train a vector classifier

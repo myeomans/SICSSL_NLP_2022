@@ -1,0 +1,131 @@
+---
+title: "Re-Anlaysing Data from 'Belief in the Utility of Cross-Partisan Empathy..'"
+output: pdf_document
+date: '2022-06-18'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+We read and enjoyed a paper recently posted online, "Belief in the Utility of Cross-Partisan Empathy Reduces Partisan Animosity and Facilitates Political Persuasion" - henceforth "BUCPE"- written by Santos and colleagues (2022). We were thrilled to notice that they posted all their data online. We noticed that in Study 4, they collected natural language text of people writing persuasive messages across the aisle. However, they only asked humans to evaluate the text (for argument count, conciliatory tone, and strength of position), and did not analyse the content of the text directly.
+
+We have conducted similar research focusing on conversation behavior, that involved generating a natural language processing algorithm to detect "conversational receptiveness" among people who disagree with one another (Yeomans et al., 2020). We wanted to know if our algorithm would pick up their differences in the text - across conditions, and within the human annotations.
+
+First we load the data and packages
+```{r cars, echo=FALSE}
+library(tidyverse)
+library(politeness)
+
+cpe_dat<-read.csv("complete_bcpe_study4.csv") %>%
+  filter(!is.na(condition)) %>%
+  mutate(cond_hi=1*(condition=="High Utility"))
+
+``` 
+
+Next, we extract politeness features from the text, and plot their differences across conditions  We replicate a result in the paper that the High Utility condition produces more acknowledgement ("I understand") and agreement (e.g. "I agree") than the Low Utility condition. It is not clear where the BUCPE result comes from - it is one of the very few analyses in the whole paper that is not reported on OSF, or given any citation. 
+
+```{r cars2}
+cpe_polite<-politeness(cpe_dat$message,parser="spacy")
+
+
+politenessPlot(cpe_polite,
+               cpe_dat$condition,
+               middle_out=.05)
+
+```
+
+Next, we calculate receptiveness in the texts using our pre-trained model, which is included in the package. This model is based on 2,835 annotated texts, from studies 1 & 4 of the Yeomans et al. (2020) paper and some unpublished data with a very similar paradigm (though, notably, the training data did not include anyone discussing gun control). We also create two simple benchmark measures - word count and sentiment.
+
+```{r cars3}
+cpe_dat<-cpe_dat %>%
+  bind_cols(cpe_polite) %>%
+  mutate(recept_NLP=receptiveness(message),
+         txt_wdct=str_count(message,"[[:alpha:]]+"),
+         sentiment=Positive.Emotion-Negative.Emotion)
+```
+
+We wanted to know if these were correlated with one another, and with the human annotations. This shows a correlation matrix of three text measures, the condition label, and the ratings from participants and trained annotators. Receptiveness correlates with many of the important variables reported in the text - outgroup affect, perceived empathy, conciliatory tone, and persuasiveness (all correlations > 0.065 are significant at the p<.05 level).
+```{r cars4}
+
+cors<-cpe_dat %>%
+  mutate(HighCondition=1*(condition=="High Utility")) %>%
+  select(recept_NLP,txt_wdct,sentiment,
+         Agreement,Acknowledgement,
+         affect,empathy,persuasion,outgroup_aff,
+         conciliatory_tone,argument_count,
+         strength_position) %>%
+  cor() %>%
+  round(3)
+
+cors[,1:5]
+
+```
+
+Next, we compare relative effect sizes of the across-condition difference on the NLP measures, the participant ratings, and the RA annotations. Receptiveness shows a bigger effect size than all participant ratings, and all annotations except conciliatory tone. The acknowledgment feature of the package - a major component of the pre-trained model - shows a slightly stronger effect on its own. 
+
+```{r cars5, echo=FALSE}
+effectSet<-cpe_dat %>%
+  select(ID,cond,recept_NLP,txt_wdct,sentiment,
+         Agreement,Acknowledgement,
+         affect,empathy,persuasion,outgroup_aff,
+         conciliatory_tone,argument_count,
+         strength_position) %>%
+  pivot_longer(-c(ID,cond),
+               names_to="name",
+               values_to="value")
+
+effectSet %>%
+  group_by(name) %>%
+  summarize(d=summary(lm(scale(value)~cond))$coef[2,1],
+            se=summary(lm(scale(value)~cond))$coef[2,2],
+            l=d-se,u=d+se) %>%
+  mutate(vartype=case_when(
+    name%in%c("txt_wdct","sentiment","recept_NLP",
+              "Agreement","Acknowledgement") ~ "Text",
+    name%in%c("persuasion","outgroup_aff","empathy","affect") ~ "Participants",
+    name%in%c("conciliatory_tone","argument_count","strength_position") ~ "Annotations",
+    T ~ "none"),
+    name=factor(name,ordered=T,
+                levels=c("txt_wdct","sentiment","recept_NLP",
+                         "Agreement","Acknowledgement",
+                         "persuasion","outgroup_aff","empathy","affect",
+                         "conciliatory_tone","argument_count",
+                         "strength_position"),
+                labels=c("Word Count","Sentiment","Receptiveness",
+                         "Agreement","Acknowledgement",
+                         "persuasion","outgroup_aff","empathy","affect",
+                         "conciliatory_tone","argument_count",
+                         "strength_position"))
+  ) %>%
+  mutate(name=reorder(name,d)) %>%
+ggplot(aes(x=name,color=vartype,
+           y=d,ymin=l,ymax=u)) +
+  geom_point() +
+  geom_errorbar() +
+  coord_flip() + 
+  theme_bw() +
+  ylim(-.3,1) +
+  labs(color="Variable Type",
+       y="Cohen's D",
+       x="")+
+  geom_hline(yintercept=0)+
+  theme(axis.text = element_text(size=20),
+        axis.title = element_text(size=24),
+        legend.position=c(.73,.15),
+        legend.text = element_text(size=15),
+        legend.background = element_rect(color="black"),
+        panel.grid = element_blank())
+
+```
+
+## Conclusions
+
+Receptiveness is a key outcome of belief in the utilit of cross-partisan empathy. Our pre-trained model - and in particular, our acknowledgement feature - strongly outperforms all human metrics in detecting manipulated BUCPE, except for their annotations of conciliatory tone. Our model provides a robust and scaleable model for measuring belief in cross-partisan empathy from natural language. Our results also suggest that conversational receptiveness may be an critical mediator of the effect of speaker BUCPE on listener beliefs.
+
+## References
+
+Santos, L., Voelkel, J.G., Zaki, J. & Willer, R. (2022). Belief in the Utility of Cross-Partisan Empathy Reduces Partisan Animosity and Facilitates Political Persuasion. In press (I think?)
+
+Yeomans, M., Minson, J., Collins, H., Chen, F., & Gino, F. (2020). Conversational receptiveness: Improving engagement with opposing views. Organizational Behavior and Human Decision Processes, 160, 131-148.
+
